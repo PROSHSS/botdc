@@ -1,0 +1,75 @@
+import discord
+from discord.ext import commands
+from discord import app_commands
+
+intents = discord.Intents.default()
+intents.message_content = True
+intents.guilds = True
+intents.members = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Substitua pelo ID da categoria onde os tickets serão criados
+TICKET_CATEGORY_ID = 123456789012345678
+# ID do cargo de moderadores que terão acesso aos tickets
+MOD_ROLE_ID = 987654321098765432
+
+@bot.event
+async def on_ready():
+    print(f'Bot conectado como {bot.user}')
+    try:
+        synced = await bot.tree.sync()
+        print(f'Comandos sincronizados: {len(synced)}')
+    except Exception as e:
+        print(e)
+
+class TicketView(discord.ui.View):
+    def __init__(self, author):
+        super().__init__(timeout=None)
+        self.author = author
+
+    @discord.ui.select(
+        placeholder="Escolha o tipo de ticket...",
+        min_values=1,
+        max_values=1,
+        options=[
+            discord.SelectOption(label="Denúncia", description="Abrir um ticket de denúncia", emoji="⚠️"),
+            discord.SelectOption(label="Pergunta", description="Abrir um ticket para perguntas", emoji="❓"),
+            discord.SelectOption(label="Sugestão", description="Abrir um ticket de sugestão", emoji="💡")
+        ]
+    )
+    async def select_callback(self, select, interaction: discord.Interaction):
+        tipo = select.values[0]
+        guild = interaction.guild
+        category = discord.utils.get(guild.categories, id=TICKET_CATEGORY_ID)
+        mod_role = guild.get_role(MOD_ROLE_ID)
+
+        # Criar o canal com permissões
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            self.author: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        if mod_role:
+            overwrites[mod_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+
+        channel = await guild.create_text_channel(
+            name=f'ticket-{self.author.name}',
+            category=category,
+            overwrites=overwrites
+        )
+        await channel.send(f'{self.author.mention}, seu ticket de **{tipo}** foi criado!')
+
+        await interaction.response.send_message(f'Ticket criado: {channel.mention}', ephemeral=True)
+        self.stop()
+
+# Comando slash para abrir o menu de tickets
+@bot.tree.command(name="ticket", description="Abra um ticket")
+async def ticket(interaction: discord.Interaction):
+    view = TicketView(interaction.user)
+    await interaction.response.send_message(
+        "Escolha o tipo de ticket que deseja abrir:",
+        view=view,
+        ephemeral=True
+    )
+
+bot.run('MTM4NDE1OTk2Mzc0MzUyMjgyNg.GiNxnK.VxF-74oMvJYDhr-DIey3N3db_h8Abe_hIBfp6w')
