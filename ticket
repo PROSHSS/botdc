@@ -72,4 +72,4 @@ async def ticket(interaction: discord.Interaction):
         ephemeral=True
     )
 
-bot.run('MTM4NDE1OTk2Mzc0MzUyMjgyNg.GiNxnK.VxF-74oMvJYDhr-DIey3N3db_h8Abe_hIBfp6w')
+bot.run(MTM4NDE1OTk2Mzc0MzUyMjgyNg.GiNxnK.VxF-74oMvJYDhr-DIey3N3db_h8Abe_hIBfp6w)
